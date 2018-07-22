@@ -1,5 +1,6 @@
 #ifndef TRIE_NODE_H__
 #define TRIE_NODE_H__
+#include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -28,13 +29,7 @@ class TrieNode {
     bool IsLeaf() const noexcept { return is_leaf_; }
 
     std::unordered_map<char, std::unique_ptr<TrieNode>>& Children() noexcept { return children_; }
-    /**
-     * Add a child node to the vector for children TrieNodes.
-     * @param s value of child node key
-     */
-    void AddChild(const char key, const std::string& s) noexcept {
-      children_[key] = std::make_unique<TrieNode>(s);
-    }
+
   private:
     char key_;
     bool is_leaf_;

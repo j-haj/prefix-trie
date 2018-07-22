@@ -3,10 +3,12 @@
 #include <string>
 #include <memory>
 
-class TrieNode;
+#include "trie_node.h"
 
 class PrefixTrie {
   public:
+
+    PrefixTrie() : root_(std::make_unique<TrieNode>()) {}
 
     /**
      * Inserts the string into the prefix trie. This method is idempotent.

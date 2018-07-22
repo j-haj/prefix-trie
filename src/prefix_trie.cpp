@@ -33,5 +33,5 @@ bool PrefixTrie::Contains(const std::string& s) const noexcept {
     runner = runner->Children()[s[cur_index]].get();
     ++cur_index;
   }
-  return cur_index == s.size() - 1;
+  return cur_index == s.size();
 }
