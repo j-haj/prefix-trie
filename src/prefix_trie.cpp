@@ -1,5 +1,4 @@
 #include <cstddef>
-#include <iostream>
 #include <string>
 
 #include "trie_node.h"
@@ -11,12 +10,10 @@ void PrefixTrie::Insert(const std::string& s) noexcept {
   TrieNode* runner = root_.get();
   std::size_t cur_index = 0;
   while (!runner->Children().empty() && cur_index < s.size()) {
-    std::cout << "At " << s[cur_index] << std::endl;
     runner = runner->Children()[s[cur_index]].get();
     ++cur_index;
   }
   while (cur_index < s.size()) {
-    std::cout << "Creating child for key: " << s[cur_index] << std::endl;
     runner->Children()[s[cur_index]] = std::make_unique<TrieNode>(s[cur_index]);
     runner = runner->Children()[s[cur_index]].get();
     ++cur_index;
