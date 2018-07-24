@@ -21,9 +21,18 @@ class PrefixTrie {
   bool Contains(const std::string& s) const noexcept;
 
   /**
-   * Returns a set of suffixes of strings whose prefix is `s`.
+   * Takes a prefix an iterator to a container in which the strings matching the
+   * given prefix will be copied.
    */
-  std::set<std::string> Suffixes(const std::string& s) const noexcept;
+  template <typename Inserter>
+  void MatchInserter(const std::string& s,
+                     typename Inserter::iterator begin) const noexcept;
+
+  /**
+   * Passes strings who match the given prefix into the given function callback.
+   */
+  void MatchWithCallback(const std::string& s,
+                         std::function<void(const std::string&)> callback) const;
 
  private:
   std::unique_ptr<TrieNode> root_;

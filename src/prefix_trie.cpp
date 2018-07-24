@@ -1,8 +1,10 @@
 #include <cstddef>
+#include <set>
+#include <stack>
 #include <string>
 
-#include "trie_node.h"
 #include "prefix_trie.h"
+#include "trie_node.h"
 
 void PrefixTrie::Insert(const std::string& s) noexcept {
   if (s.empty()) return;
@@ -26,9 +28,32 @@ bool PrefixTrie::Contains(const std::string& s) const noexcept {
   TrieNode* runner = root_.get();
   std::size_t cur_index = 0;
   while (!runner->Children().empty() && cur_index < s.size()) {
-    if (runner->Children().find(s[cur_index]) == runner->Children().end()) return false;
+    if (runner->Children().find(s[cur_index]) == runner->Children().end())
+      return false;
     runner = runner->Children()[s[cur_index]].get();
     ++cur_index;
   }
   return cur_index == s.size();
 }
+
+void PrefixTrie::MatchWithCallback(
+    const std::string& s,
+    std::function<void(const std::string&)> callback) const {
+  TrieNode* runner = root_.get();
+  std::size_t cur_index = 0;
+  // Traverse trie to end of prefix
+  while (cur_index < s.size()) {
+    if (runner->Children().find(s[cur_index]) == runner->Children().end()) return;
+    runner = runner->Children()[s[cur_index]].get();
+    ++cur_index;
+  }
+
+  // Begin iteration over all strings who match the given prefix
+  std::stack<TrieNode*> stumps;
+  stumps.push(runner);
+  while (!stumps.empty()) {
+    auto tmp = stumps.top();
+    stumps.pop(); 
+  }
+}
+
