@@ -12,4 +12,4 @@ set(HEADERS
   ${PROJECT_SOURCE_DIR}/src/trie_node.h
 )
 
-add_executable(main ${PROJECT_SOURCE_DIR}/src/main.cpp ${SOURCES})
+add_executable(main ${PROJECT_SOURCE_DIR}/examples/main.cpp ${SOURCES})
