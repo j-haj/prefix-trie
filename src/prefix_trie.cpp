@@ -44,7 +44,7 @@ bool PrefixTrie::Contains(const std::string& s) const noexcept {
 
 void PrefixTrie::MatchWithCallback(
     const std::string& s,
-    std::function<void(const std::string&)> callback) const {
+    const std::function<void(const std::string&)>& callback) const {
   // Check early exit conditions
   if (s.empty()) callback("");
   else if(root_->Children().find(s[0]) == root_->Children().end()) return;

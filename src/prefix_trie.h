@@ -36,7 +36,7 @@ class PrefixTrie {
    */
   void MatchWithCallback(
       const std::string& s,
-      std::function<void(const std::string&)> callback) const;
+      const std::function<void(const std::string&)>& callback) const;
 
  private:
   std::unique_ptr<TrieNode> root_;
