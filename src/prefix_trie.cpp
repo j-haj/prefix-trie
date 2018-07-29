@@ -1,4 +1,6 @@
 #include <cstddef>
+#include <iostream>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <stack>
@@ -10,10 +12,10 @@
 
 void PrefixTrie::Insert(const std::string& s) noexcept {
   if (s.empty()) return;
-
   TrieNode* runner = root_.get();
   std::size_t cur_index = 0;
   while (!runner->Children().empty() && cur_index < s.size()) {
+    if (runner->Children().find(s[cur_index]) == runner->Children().end()) break;
     runner = runner->Children()[s[cur_index]].get();
     ++cur_index;
   }
