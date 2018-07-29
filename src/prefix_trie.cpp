@@ -15,7 +15,8 @@ void PrefixTrie::Insert(const std::string& s) noexcept {
   TrieNode* runner = root_.get();
   std::size_t cur_index = 0;
   while (!runner->Children().empty() && cur_index < s.size()) {
-    if (runner->Children().find(s[cur_index]) == runner->Children().end()) break;
+    if (runner->Children().find(s[cur_index]) == runner->Children().end())
+      break;
     runner = runner->Children()[s[cur_index]].get();
     ++cur_index;
   }
@@ -24,6 +25,7 @@ void PrefixTrie::Insert(const std::string& s) noexcept {
     runner = runner->Children()[s[cur_index]].get();
     ++cur_index;
   }
+  runner->Children()[s[cur_index-1]] = std::make_unique<TrieNode>('\0');
 }
 
 bool PrefixTrie::Contains(const std::string& s) const noexcept {
@@ -43,38 +45,57 @@ bool PrefixTrie::Contains(const std::string& s) const noexcept {
 void PrefixTrie::MatchWithCallback(
     const std::string& s,
     std::function<void(const std::string&)> callback) const {
-  TrieNode* runner = root_.get();
-  std::size_t cur_index = 0;
+  // Check early exit conditions
+  if (s.empty()) callback("");
+  else if(root_->Children().find(s[0]) == root_->Children().end()) return;
+
+  TrieNode* runner = root_->Children()[s[0]].get();
+  std::size_t cur_index = 1;
+
   // Traverse trie to end of prefix
   std::stringstream base;
   while (cur_index < s.size()) {
     base << runner->Key();
+    // If we can't move forward the prefix must not exist, exit early
     if (runner->Children().find(s[cur_index]) == runner->Children().end()) return;
     runner = runner->Children()[s[cur_index]].get();
     ++cur_index;
   }
+  base << runner->Key();
 
-  // Begin iteration over all strings who match the given prefix
-  std::stack<TrieNode*> nodes;
-  nodes.push(runner);
+  // Begin depth-first traversal over all strings who match the given prefix
+  std::stack<std::pair<std::size_t, TrieNode*>> nodes;
+  for (const auto& n : runner->Children()) {
+    nodes.push(std::make_pair(cur_index, n.second.get()));
+  }
   std::vector<char> postfix;
+  std::string prefix = base.str();
   while (!nodes.empty()) {
     auto tmp = nodes.top();
     nodes.pop();
-    postfix.push_back(tmp->Key());
-    if (tmp->IsLeaf()) {
+
+    // Discard all postfix characters from most recent DFS that are beyond
+    // our current depth within the tree
+    while (prefix.size() + postfix.size() > tmp.first) postfix.pop_back();
+
+    postfix.push_back(tmp.second->Key());
+
+    if (tmp.second->IsLeaf()) {
+      // Construct full string since we are at a leaf node
       std::stringstream p;
       for (const auto c : postfix) {
         p << c;
       }
       std::stringstream ss;
-      ss << base.str() << p.str();
+      ss << prefix << p.str();
+
+      // String constructed, pass to callback
       callback(ss.str());
     } else {
-      for (const auto& c : tmp->Children()) {
-        nodes.push(c.second.get());
+      // Add all children nodes to stack
+      for (const auto& c : tmp.second->Children()) {
+        nodes.push(std::make_pair(tmp.first+1, c.second.get()));
       }
     }
   }
 }
-

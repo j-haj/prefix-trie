@@ -25,14 +25,18 @@ class PrefixTrie {
    * given prefix will be copied.
    */
   template <typename Inserter>
-  void MatchInserter(const std::string& s,
-                     typename Inserter::iterator begin) const noexcept;
+  void MatchBackInserter(const std::string& s,
+                         typename Inserter::iterator begin) const noexcept;
 
   /**
    * Passes strings who match the given prefix into the given function callback.
+   *
+   * The strings are found via an iterative depth-first traversal to save
+   * memory. Note the empty string prefix is always matched.
    */
-  void MatchWithCallback(const std::string& s,
-                         std::function<void(const std::string&)> callback) const;
+  void MatchWithCallback(
+      const std::string& s,
+      std::function<void(const std::string&)> callback) const;
 
  private:
   std::unique_ptr<TrieNode> root_;
