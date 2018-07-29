@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "prefix_trie.h"
 
@@ -27,6 +28,13 @@ int main() {
   std::cout << "Attemtpting to match on 'ra'\n";
   pt.MatchWithCallback("ra", [](const std::string& s) {
     std::cout << "Matched: " << s << std::endl;
+  });
+
+  std::vector<std::string> matches;
+  pt.MatchBackInserter(matches, "ra");
+  std::cout << "Matched with MatchBackInserter:\n";
+  std::for_each(matches.begin(), matches.end(), [](const std::string& s) {
+    std::cout << "\t" << s << std::endl;
   });
   return 0;
 }

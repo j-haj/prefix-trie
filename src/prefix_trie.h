@@ -1,5 +1,6 @@
 #ifndef PREFIX_TRIE_H__
 #define PREFIX_TRIE_H__
+#include <iterator>
 #include <memory>
 #include <set>
 #include <string>
@@ -24,9 +25,14 @@ class PrefixTrie {
    * Takes a prefix an iterator to a container in which the strings matching the
    * given prefix will be copied.
    */
-  template <typename Inserter>
-  void MatchBackInserter(const std::string& s,
-                         typename Inserter::iterator begin) const noexcept;
+  template <typename Container>
+  void MatchBackInserter(Container& c, const std::string& s) const noexcept {
+    auto bi = std::back_insert_iterator<Container>(c);
+    MatchWithCallback(s, [&bi](const std::string& s) {
+      *bi = s;
+      ++bi;
+    });
+  }
 
   /**
    * Passes strings who match the given prefix into the given function callback.
