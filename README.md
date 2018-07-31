@@ -6,3 +6,5 @@ the trie include:
 * **contains** - check if the trie contains the given prefix
 * **match** - call a given callback function on all strings who match the given
   prefix.
+* **back inserter** -  given a container and a prefix, insert all strings
+  matching the given prefix into the given container.
