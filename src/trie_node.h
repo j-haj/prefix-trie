@@ -6,32 +6,34 @@
 #include <unordered_map>
 
 class TrieNode {
-  public:
-    /**
-     * Default constructor.
-     */
-    TrieNode() : TrieNode('\0')  {}
+ public:
+  /**
+   * Default constructor.
+   */
+  TrieNode() : TrieNode('\0') {}
 
-    /**
-     * Constructs a TrieNode with the given key.
-     */
-    TrieNode(char k) : key_(k) {}
+  /**
+   * Constructs a TrieNode with the given key.
+   */
+  TrieNode(char k) : key_(k) {}
 
-    // No copy-constructor since each TrieNode owns its children data
-    TrieNode(const TrieNode& o) = delete;
-    TrieNode(TrieNode&& o) : key_(o.key_) {
-      for (auto& p : o.children_) {
-        children_[p.first] = std::move(p.second);
-      }
+  // No copy-constructor since each TrieNode owns its children data
+  TrieNode(const TrieNode& o) = delete;
+  TrieNode(TrieNode&& o) : key_(o.key_) {
+    for (auto& p : o.children_) {
+      children_[p.first] = std::move(p.second);
     }
+  }
 
-    char Key() const noexcept { return key_; }
-    bool IsLeaf() const noexcept { return children_.empty(); }
+  char Key() const noexcept { return key_; }
+  bool IsLeaf() const noexcept { return children_.empty(); }
 
-    std::unordered_map<char, std::unique_ptr<TrieNode>>& Children() noexcept { return children_; }
+  std::unordered_map<char, std::unique_ptr<TrieNode>>& Children() noexcept {
+    return children_;
+  }
 
-  private:
-    char key_;
-    std::unordered_map<char, std::unique_ptr<TrieNode>> children_;
-}; // class TrieNode
-#endif // TRIE_NODE_H__
+ private:
+  char key_;
+  std::unordered_map<char, std::unique_ptr<TrieNode>> children_;
+};      // class TrieNode
+#endif  // TRIE_NODE_H__
