@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "prefix_trie.h"
-#include "trie_node.h"
 
 void PrefixTrie::Insert(const std::string& s) noexcept {
   if (s.empty()) return;
