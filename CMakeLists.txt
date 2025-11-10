@@ -3,16 +3,12 @@ cmake_minimum_required(VERSION 3.14)
 
 set(CMAKE_CXX_STANDARD 14)
 include_directories(${PROJECT_SOURCE_DIR}/src)
-set(SOURCES
-  ${PROJECT_SOURCE_DIR}/src/prefix_trie.cpp
-)
 
 set(HEADERS
   ${PROJECT_SOURCE_DIR}/src/prefix_trie.h
-  ${PROJECT_SOURCE_DIR}/src/trie_node.h
 )
 
-add_executable(main ${PROJECT_SOURCE_DIR}/examples/main.cpp ${SOURCES})
+add_executable(main ${PROJECT_SOURCE_DIR}/examples/main.cpp)
 
 # Google Test setup
 include(FetchContent)
@@ -30,7 +26,6 @@ enable_testing()
 add_executable(
   prefix_trie_tests
   tests/prefix_trie_test.cpp
-  ${SOURCES}
 )
 
 target_link_libraries(

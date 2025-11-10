@@ -502,6 +502,81 @@ TEST_F(PrefixTrieTest, IteratorDereference) {
   EXPECT_EQ(it->size(), 5);
 }
 
+// WString tests
+class WPrefixTrieTest : public ::testing::Test {
+ protected:
+  WPrefixTrie trie;
+};
+
+TEST_F(WPrefixTrieTest, InsertAndContains) {
+  trie.Insert(L"hello");
+  trie.Insert(L"world");
+  trie.Insert(L"こんにちは");  // Japanese
+
+  EXPECT_TRUE(trie.Contains(L"hello"));
+  EXPECT_TRUE(trie.Contains(L"world"));
+  EXPECT_TRUE(trie.Contains(L"こんにちは"));
+  EXPECT_FALSE(trie.Contains(L"goodbye"));
+}
+
+TEST_F(WPrefixTrieTest, SizeAndCount) {
+  trie.Insert(L"test");
+  trie.Insert(L"testing");
+  trie.Insert(L"tester");
+
+  EXPECT_EQ(trie.Size(), 3);
+  EXPECT_EQ(trie.Count(L"test"), 3);
+  EXPECT_EQ(trie.Count(L"testi"), 1);
+}
+
+TEST_F(WPrefixTrieTest, RemoveWideStrings) {
+  trie.Insert(L"hello");
+  trie.Insert(L"help");
+
+  trie.Remove(L"hello");
+
+  EXPECT_FALSE(trie.Contains(L"hello"));
+  EXPECT_TRUE(trie.Contains(L"help"));
+  EXPECT_EQ(trie.Size(), 1);
+}
+
+TEST_F(WPrefixTrieTest, IteratorWithWideStrings) {
+  trie.Insert(L"apple");
+  trie.Insert(L"application");
+  trie.Insert(L"apply");
+
+  std::vector<std::wstring> matches;
+  for (const auto& s : trie.Matches(L"app")) {
+    matches.push_back(s);
+  }
+
+  EXPECT_EQ(matches.size(), 3);
+}
+
+TEST_F(WPrefixTrieTest, UnicodeStrings) {
+  trie.Insert(L"café");
+  trie.Insert(L"naïve");
+  trie.Insert(L"résumé");
+  trie.Insert(L"Москва");  // Russian
+  trie.Insert(L"北京");     // Chinese
+
+  EXPECT_TRUE(trie.Contains(L"café"));
+  EXPECT_TRUE(trie.Contains(L"Москва"));
+  EXPECT_TRUE(trie.Contains(L"北"));
+  EXPECT_EQ(trie.Size(), 5);
+}
+
+TEST_F(WPrefixTrieTest, GetStatsWide) {
+  trie.Insert(L"a");
+  trie.Insert(L"ab");
+  trie.Insert(L"abc");
+
+  auto stats = trie.GetStats();
+  EXPECT_EQ(stats.num_strings, 3);
+  EXPECT_GT(stats.num_nodes, 0);
+  EXPECT_GT(stats.max_depth, 0);
+}
+
 // Main function
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
