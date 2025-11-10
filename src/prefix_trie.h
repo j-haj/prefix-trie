@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <functional>
+#include <iomanip>
 #include <iterator>
 #include <memory>
 #include <set>
@@ -304,6 +305,148 @@ class PrefixTrieBase {
         stats.num_nodes * node_overhead + total_children * map_entry_overhead;
 
     return stats;
+  }
+
+  /**
+   * Serializes the trie to JSON format.
+   * Returns a JSON string containing all strings in the trie.
+   */
+  std::string ToJSON() const {
+    std::ostringstream oss;
+    oss << "[";
+
+    std::vector<string_type> all_strings;
+    MatchBackInserter(all_strings, string_type());
+
+    for (std::size_t i = 0; i < all_strings.size(); ++i) {
+      if (i > 0) oss << ",";
+      oss << "\"";
+      // Escape special characters
+      for (std::size_t j = 0; j < all_strings[i].size(); ++j) {
+        CharT ch = all_strings[i][j];
+        if (ch == CharT('"')) {
+          oss << "\\\"";
+        } else if (ch == CharT('\\')) {
+          oss << "\\\\";
+        } else if (ch == CharT('\n')) {
+          oss << "\\n";
+        } else if (ch == CharT('\r')) {
+          oss << "\\r";
+        } else if (ch == CharT('\t')) {
+          oss << "\\t";
+        } else if (sizeof(CharT) == 1) {
+          // For char, output directly
+          oss << static_cast<char>(ch);
+        } else {
+          // For wchar_t, use Unicode escape sequence
+          oss << "\\u" << std::hex << std::setw(4) << std::setfill('0')
+              << static_cast<int>(ch) << std::dec;
+        }
+      }
+      oss << "\"";
+    }
+
+    oss << "]";
+    return oss.str();
+  }
+
+  /**
+   * Deserializes a trie from JSON format.
+   * Expects a JSON array of strings: ["string1", "string2", ...]
+   * Returns true on success, false on parse error.
+   */
+  bool FromJSON(const std::string& json) {
+    Clear();
+
+    // Simple JSON parser for array of strings
+    std::size_t pos = 0;
+
+    // Skip whitespace
+    auto skip_whitespace = [&]() {
+      while (pos < json.size() &&
+             (json[pos] == ' ' || json[pos] == '\n' ||
+              json[pos] == '\r' || json[pos] == '\t')) {
+        ++pos;
+      }
+    };
+
+    skip_whitespace();
+    if (pos >= json.size() || json[pos] != '[') return false;
+    ++pos;
+
+    bool found_closing = false;
+    while (pos < json.size()) {
+      skip_whitespace();
+
+      if (pos >= json.size()) return false;
+
+      if (json[pos] == ']') {
+        ++pos;
+        found_closing = true;
+        break;
+      }
+
+      if (json[pos] != '"') return false;
+      ++pos;
+
+      // Parse string
+      string_type str;
+      while (pos < json.size() && json[pos] != '"') {
+        if (json[pos] == '\\') {
+          ++pos;
+          if (pos >= json.size()) return false;
+
+          if (json[pos] == '"') {
+            str += CharT('"');
+          } else if (json[pos] == '\\') {
+            str += CharT('\\');
+          } else if (json[pos] == 'n') {
+            str += CharT('\n');
+          } else if (json[pos] == 'r') {
+            str += CharT('\r');
+          } else if (json[pos] == 't') {
+            str += CharT('\t');
+          } else if (json[pos] == 'u') {
+            // Unicode escape: \uXXXX
+            if (pos + 4 >= json.size()) return false;
+            ++pos;
+            int code = 0;
+            for (int i = 0; i < 4; ++i) {
+              char hex = json[pos + i];
+              if (hex >= '0' && hex <= '9') {
+                code = code * 16 + (hex - '0');
+              } else if (hex >= 'a' && hex <= 'f') {
+                code = code * 16 + (hex - 'a' + 10);
+              } else if (hex >= 'A' && hex <= 'F') {
+                code = code * 16 + (hex - 'A' + 10);
+              } else {
+                return false;
+              }
+            }
+            str += static_cast<CharT>(code);
+            pos += 3;  // Will be incremented by 1 at end of loop
+          } else {
+            return false;
+          }
+          ++pos;
+        } else {
+          str += static_cast<CharT>(json[pos]);
+          ++pos;
+        }
+      }
+
+      if (pos >= json.size()) return false;
+      ++pos;  // Skip closing "
+
+      Insert(str);
+
+      skip_whitespace();
+      if (pos < json.size() && json[pos] == ',') {
+        ++pos;
+      }
+    }
+
+    return found_closing;
   }
 
   /**

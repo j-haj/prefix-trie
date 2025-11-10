@@ -577,6 +577,113 @@ TEST_F(WPrefixTrieTest, GetStatsWide) {
   EXPECT_GT(stats.max_depth, 0);
 }
 
+// JSON Serialization tests
+TEST_F(PrefixTrieTest, ToJSONBasic) {
+  trie.Insert("hello");
+  trie.Insert("world");
+
+  std::string json = trie.ToJSON();
+
+  EXPECT_TRUE(json.find("hello") != std::string::npos);
+  EXPECT_TRUE(json.find("world") != std::string::npos);
+  EXPECT_TRUE(json.find("[") != std::string::npos);
+  EXPECT_TRUE(json.find("]") != std::string::npos);
+}
+
+TEST_F(PrefixTrieTest, FromJSONBasic) {
+  std::string json = R"(["hello", "world", "test"])";
+
+  EXPECT_TRUE(trie.FromJSON(json));
+
+  EXPECT_EQ(trie.Size(), 3);
+  EXPECT_TRUE(trie.Contains("hello"));
+  EXPECT_TRUE(trie.Contains("world"));
+  EXPECT_TRUE(trie.Contains("test"));
+}
+
+TEST_F(PrefixTrieTest, RoundTripSerialization) {
+  trie.Insert("apple");
+  trie.Insert("application");
+  trie.Insert("apply");
+
+  std::string json = trie.ToJSON();
+
+  PrefixTrie trie2;
+  EXPECT_TRUE(trie2.FromJSON(json));
+
+  EXPECT_EQ(trie.Size(), trie2.Size());
+  EXPECT_TRUE(trie2.Contains("apple"));
+  EXPECT_TRUE(trie2.Contains("application"));
+  EXPECT_TRUE(trie2.Contains("apply"));
+}
+
+TEST_F(PrefixTrieTest, JSONWithSpecialCharacters) {
+  trie.Insert("hello\"world");
+  trie.Insert("test\\path");
+  trie.Insert("line\nbreak");
+  trie.Insert("tab\there");
+
+  std::string json = trie.ToJSON();
+
+  PrefixTrie trie2;
+  EXPECT_TRUE(trie2.FromJSON(json));
+
+  EXPECT_EQ(trie.Size(), trie2.Size());
+  EXPECT_TRUE(trie2.Contains("hello\"world"));
+  EXPECT_TRUE(trie2.Contains("test\\path"));
+  EXPECT_TRUE(trie2.Contains("line\nbreak"));
+  EXPECT_TRUE(trie2.Contains("tab\there"));
+}
+
+TEST_F(PrefixTrieTest, FromJSONEmptyArray) {
+  std::string json = "[]";
+
+  EXPECT_TRUE(trie.FromJSON(json));
+  EXPECT_EQ(trie.Size(), 0);
+}
+
+TEST_F(PrefixTrieTest, FromJSONWithWhitespace) {
+  std::string json = R"([
+    "hello",
+    "world",
+    "test"
+  ])";
+
+  EXPECT_TRUE(trie.FromJSON(json));
+  EXPECT_EQ(trie.Size(), 3);
+}
+
+TEST_F(PrefixTrieTest, FromJSONInvalidFormat) {
+  // Not an array
+  EXPECT_FALSE(trie.FromJSON("{\"key\": \"value\"}"));
+
+  // Missing closing bracket
+  EXPECT_FALSE(trie.FromJSON("[\"test\""));
+
+  // Missing quotes
+  EXPECT_FALSE(trie.FromJSON("[test]"));
+
+  // Invalid escape sequence
+  EXPECT_FALSE(trie.FromJSON("[\"test\\x\"]"));
+}
+
+TEST_F(PrefixTrieTest, JSONPreservesOrder) {
+  trie.Insert("zebra");
+  trie.Insert("apple");
+  trie.Insert("mango");
+
+  std::string json = trie.ToJSON();
+
+  PrefixTrie trie2;
+  EXPECT_TRUE(trie2.FromJSON(json));
+
+  // Should contain all elements regardless of order
+  EXPECT_TRUE(trie2.Contains("zebra"));
+  EXPECT_TRUE(trie2.Contains("apple"));
+  EXPECT_TRUE(trie2.Contains("mango"));
+  EXPECT_EQ(trie2.Size(), 3);
+}
+
 // Main function
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
