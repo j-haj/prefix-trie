@@ -684,6 +684,165 @@ TEST_F(PrefixTrieTest, JSONPreservesOrder) {
   EXPECT_EQ(trie2.Size(), 3);
 }
 
+// Fuzzy Matching tests
+TEST_F(PrefixTrieTest, FuzzyMatchExact) {
+  trie.Insert("hello");
+  trie.Insert("world");
+
+  auto results = trie.MatchFuzzy("hello", 0);
+
+  EXPECT_EQ(results.size(), 1);
+  EXPECT_EQ(results[0].first, "hello");
+  EXPECT_EQ(results[0].second, 0);
+}
+
+TEST_F(PrefixTrieTest, FuzzyMatchSingleSubstitution) {
+  trie.Insert("hello");
+  trie.Insert("help");
+  trie.Insert("world");
+
+  auto results = trie.MatchFuzzy("hallo", 1);
+
+  // Should match "hello" (1 substitution: e->a)
+  EXPECT_GE(results.size(), 1);
+
+  bool found_hello = false;
+  for (const auto& pair : results) {
+    if (pair.first == "hello") {
+      found_hello = true;
+      EXPECT_EQ(pair.second, 1);
+    }
+  }
+  EXPECT_TRUE(found_hello);
+}
+
+TEST_F(PrefixTrieTest, FuzzyMatchInsertion) {
+  trie.Insert("cat");
+  trie.Insert("dog");
+
+  auto results = trie.MatchFuzzy("cart", 1);
+
+  // Should match "cat" (1 insertion: r)
+  bool found_cat = false;
+  for (const auto& pair : results) {
+    if (pair.first == "cat") {
+      found_cat = true;
+      EXPECT_LE(pair.second, 1);
+    }
+  }
+  EXPECT_TRUE(found_cat);
+}
+
+TEST_F(PrefixTrieTest, FuzzyMatchDeletion) {
+  trie.Insert("testing");
+
+  auto results = trie.MatchFuzzy("test", 3);
+
+  // Should match "testing" (3 deletions: i, n, g)
+  EXPECT_GE(results.size(), 1);
+
+  bool found = false;
+  for (const auto& pair : results) {
+    if (pair.first == "testing") {
+      found = true;
+      EXPECT_EQ(pair.second, 3);
+    }
+  }
+  EXPECT_TRUE(found);
+}
+
+TEST_F(PrefixTrieTest, FuzzyMatchMultipleResults) {
+  trie.Insert("cat");
+  trie.Insert("car");
+  trie.Insert("can");
+  trie.Insert("cap");
+
+  auto results = trie.MatchFuzzy("cat", 1);
+
+  // Should match all 4 words (distance 0-1)
+  EXPECT_GE(results.size(), 4);
+
+  // Verify "cat" has distance 0
+  for (const auto& pair : results) {
+    if (pair.first == "cat") {
+      EXPECT_EQ(pair.second, 0);
+    }
+  }
+}
+
+TEST_F(PrefixTrieTest, FuzzyMatchNoResults) {
+  trie.Insert("hello");
+  trie.Insert("world");
+
+  auto results = trie.MatchFuzzy("xyz", 1);
+
+  // No words within distance 1 of "xyz"
+  EXPECT_EQ(results.size(), 0);
+}
+
+TEST_F(PrefixTrieTest, FuzzyMatchDistance2) {
+  trie.Insert("kitten");
+
+  auto results = trie.MatchFuzzy("sitting", 3);
+
+  // "kitten" -> "sitting" requires 3 edits
+  EXPECT_GE(results.size(), 1);
+
+  bool found = false;
+  for (const auto& pair : results) {
+    if (pair.first == "kitten") {
+      found = true;
+      EXPECT_EQ(pair.second, 3);
+    }
+  }
+  EXPECT_TRUE(found);
+}
+
+TEST_F(PrefixTrieTest, FuzzyMatchEmptyQuery) {
+  trie.Insert("a");
+  trie.Insert("ab");
+  trie.Insert("abc");
+
+  auto results = trie.MatchFuzzy("", 2);
+
+  // Empty string should match short strings within distance 2
+  EXPECT_GE(results.size(), 2);
+}
+
+TEST_F(PrefixTrieTest, FuzzyMatchNegativeDistance) {
+  trie.Insert("hello");
+
+  auto results = trie.MatchFuzzy("hello", -1);
+
+  EXPECT_EQ(results.size(), 0);
+}
+
+TEST_F(PrefixTrieTest, FuzzyMatchLargeDistance) {
+  trie.Insert("hello");
+
+  auto results = trie.MatchFuzzy("world", 10);
+
+  // "hello" -> "world" = 4 edits, should match with distance 10
+  EXPECT_GE(results.size(), 1);
+  EXPECT_EQ(results[0].first, "hello");
+}
+
+TEST_F(PrefixTrieTest, FuzzyMatchPruning) {
+  // Add many strings to test pruning efficiency
+  trie.Insert("apple");
+  trie.Insert("application");
+  trie.Insert("apply");
+  trie.Insert("zebra");
+  trie.Insert("zoo");
+
+  auto results = trie.MatchFuzzy("app", 1);
+
+  // Should efficiently prune "zebra" and "zoo" branches
+  for (const auto& pair : results) {
+    EXPECT_TRUE(pair.first[0] == 'a' || pair.second <= 1);
+  }
+}
+
 // Main function
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

@@ -529,6 +529,35 @@ class PrefixTrieBase {
   }
 
   /**
+   * Finds all strings in the trie within the specified edit distance (Levenshtein distance)
+   * from the given string. Returns a vector of pairs: (matched_string, edit_distance).
+   *
+   * @param query The query string to match against
+   * @param max_distance Maximum allowed edit distance (insertions, deletions, substitutions)
+   * @return Vector of (string, distance) pairs for all matches within max_distance
+   */
+  std::vector<std::pair<string_type, int>> MatchFuzzy(const string_type& query,
+                                                       int max_distance) const {
+    std::vector<std::pair<string_type, int>> results;
+
+    if (max_distance < 0) return results;
+
+    // Initialize the first row of the DP table (distance from empty string)
+    std::vector<int> current_row(query.size() + 1);
+    for (std::size_t i = 0; i <= query.size(); ++i) {
+      current_row[i] = static_cast<int>(i);
+    }
+
+    // Traverse the trie using DFS
+    for (const auto& pair : root_->Children()) {
+      FuzzySearchRecursive(pair.second.get(), pair.first, query, string_type(),
+                          current_row, max_distance, results);
+    }
+
+    return results;
+  }
+
+  /**
    * Passes strings who match the given prefix into the given function callback.
    *
    * The strings are found via an iterative depth-first traversal to save
@@ -638,6 +667,68 @@ class PrefixTrieBase {
     CharT key_;
     std::unordered_map<CharT, std::unique_ptr<TrieNode>> children_;
   };  // class TrieNode
+
+  /**
+   * Recursive helper for fuzzy matching using edit distance.
+   * Uses dynamic programming to compute Levenshtein distance while traversing.
+   */
+  void FuzzySearchRecursive(TrieNode* node, CharT ch, const string_type& query,
+                           const string_type& current_str,
+                           const std::vector<int>& previous_row,
+                           int max_distance,
+                           std::vector<std::pair<string_type, int>>& results) const {
+    // Check if this node is a string terminator FIRST
+    if (node->Key() == CharT()) {
+      // This is a string terminator - current_str is the complete string
+      // Use previous_row since we haven't actually added a character
+      int final_distance = previous_row[query.size()];
+      if (final_distance <= max_distance) {
+        results.push_back(std::make_pair(current_str, final_distance));
+      }
+      return;  // Don't recurse from terminators
+    }
+
+    std::size_t query_len = query.size();
+    std::vector<int> current_row(query_len + 1);
+
+    // First column: edit distance from empty query to current prefix
+    current_row[0] = previous_row[0] + 1;
+
+    // Compute edit distance for each query position
+    for (std::size_t i = 1; i <= query_len; ++i) {
+      // Cost of substitution (or match if characters are equal)
+      int substitute_cost = previous_row[i - 1];
+      if (query[i - 1] != ch) {
+        substitute_cost += 1;
+      }
+
+      // Minimum of: delete from trie, delete from query, substitute
+      current_row[i] = std::min({
+          current_row[i - 1] + 1,      // Insert into trie (delete from query)
+          previous_row[i] + 1,          // Delete from trie (insert into query)
+          substitute_cost               // Substitute or match
+      });
+    }
+
+    // Pruning: if minimum distance in current row exceeds max_distance, stop
+    int min_distance = current_row[0];
+    for (std::size_t i = 1; i <= query_len; ++i) {
+      min_distance = std::min(min_distance, current_row[i]);
+    }
+    if (min_distance > max_distance) {
+      return;  // This branch cannot yield results within max_distance
+    }
+
+    // Build the current string by adding this character
+    string_type new_str = current_str + ch;
+
+    // Recurse to children
+    for (const auto& pair : node->Children()) {
+      FuzzySearchRecursive(pair.second.get(), pair.first, query, new_str,
+                          current_row, max_distance, results);
+    }
+  }
+
   std::unique_ptr<TrieNode> root_;
 
 };  // class PrefixTrieBase
